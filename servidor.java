@@ -34,9 +34,9 @@ public class servidor {
       byte[] destFile = new byte[1024];
       DatagramPacket destFilePacket = new DatagramPacket(destFile, destFile.length);
 
-      socketData.receive(filePacket);
+      socketData.receive(destFilePacket);
 
-      System.out.println("Ficheiro" + fileName + "recebido com sucesso!");
+      System.out.println("Ficheiro " + fileName + " recebido com sucesso!");
       socketData.close();
   }
 
@@ -113,5 +113,25 @@ public class servidor {
                 ackPacket.length, address, port);
         socket.send(acknowledgement);
         System.out.println("Sent ack: Sequence Number = " + findLast);
+    }
+
+    public static void printCurrentStats(int totalTransferred, int previousSize, Chronometer timer, double previousTimeElapsed) {
+        System.out.println();
+        System.out.println();
+        System.out.println("---------------------------------------------------------\n");
+
+        int sizeDifference = totalTransferred / 1000 - previousSize;
+        double difference = timer.getTime() - previousTimeElapsed;
+        double throughput = totalTransferred / 1000 / timer.getTime();
+
+
+        System.out.println("novos bytes recebidos: " + sizeDifference + "Kb");
+        System.out.println("Recebidos: " + totalTransferred / 1000 + "Kb");
+        System.out.println("Timer: " + timer.getTime() / 1000 + " Seconds");
+        System.out.println("Descarga :" + throughput + "Mbps");
+
+        System.out.println();
+        System.out.println();
+        System.out.println("---------------------------------------------------------\n");
     }
 }

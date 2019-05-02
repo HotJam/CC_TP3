@@ -11,7 +11,13 @@ class Cliente {
   private static int porta = 0;
   private static String hostname = "";
   private static String fileName = "";
+  private static String destFileName = "";
+  private static int lossRate = 0;
   private static int retransmitted = 0;
+  private static int totalTransferred = 0;
+  private static final double previousTimeElapsed = 0;
+  private static final int previousSize = 0;
+  private static Chronometer timer;
   private static Scanner input = new Scanner(System.in);
   private static Socket s = null;
 
@@ -38,12 +44,14 @@ class Cliente {
       porta = Integer.parseInt(args[0]);
       hostname = args[1];
       fileName = args[2];
+      destFileName = args[3];
 
       DatagramSocket socket = new DatagramSocket();
       InetAddress address = InetAddress.getByName(hostname);
 
-      byte[] saveDataFile = fileName.getBytes();
+      byte[] saveDataFile = destFileName.getBytes();
       DatagramPacket filePacket = new DatagramPacket(saveDataFile, saveDataFile.length, address, porta);
+      socket.send(filePacket);
 
       File ficheiro = new File(fileName);
       int fileLenght = (int) ficheiro.length();
@@ -85,7 +93,20 @@ class Cliente {
 
             DatagramPacket sendPacket = new DatagramPacket(message, message.length, address, porta);
 
-            socket.send(sendPacket);
+            Random random = new Random();
+            int randomInt = random.nextInt(100);
+            lossRate = 100;
+
+            if (randomInt <= lossRate) {
+                  socket.send(sendPacket);
+            }
+
+            totalTransferred = sendPacket.getLength() + totalTransferred;
+            totalTransferred = Math.round(totalTransferred);
+
+            if (Math.round(totalTransferred / 1000) % 50 == 0) {
+                printCurrentStats(totalTransferred, previousSize, timer, previousTimeElapsed);
+            }
 
             System.out.println("Sent: Sequence number = " + sequenceNumber);
 
@@ -135,4 +156,23 @@ class Cliente {
         }
     }
 
+    public static void printCurrentStats(int totalTransferred, int previousSize, Chronometer timer, double previousTimeElapsed) {
+        System.out.println();
+        System.out.println();
+        System.out.println("---------------------------------------------------------\n");
+
+        int sizeDifference = totalTransferred / 1000 - previousSize;
+        double difference = timer.getTime() - previousTimeElapsed;
+        double throughput = totalTransferred / 1000 / timer.getTime();
+
+
+        System.out.println("novos bytes recebidos: " + sizeDifference + "Kb");
+        System.out.println("Recebidos: " + totalTransferred / 1000 + "Kb");
+        System.out.println("Timer: " + timer.getTime() / 1000 + " Seconds");
+        System.out.println("Descarga :" + throughput + "Mbps");
+
+        System.out.println();
+        System.out.println();
+        System.out.println("---------------------------------------------------------\n");
+    }
 }
