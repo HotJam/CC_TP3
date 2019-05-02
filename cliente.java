@@ -21,6 +21,8 @@ class Cliente {
   private static Scanner input = new Scanner(System.in);
   private static Socket s = null;
 
+//asasas
+
 
   public static void main(String[] args) throws IOException, InterruptedException{
 
