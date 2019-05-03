@@ -9,11 +9,13 @@ public final class Chronometer{
         end = System.currentTimeMillis();
     }
 
-    public long getTime() {
+    public long getFinalTime() {
         return end-begin;
     }
 
-
+    public long getCurrentTime(){
+      return System.currentTimeMillis();
+    }
 
     public long getMilliseconds() {
         return end-begin;

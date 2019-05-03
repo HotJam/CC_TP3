@@ -21,8 +21,6 @@ class Cliente {
   private static Scanner input = new Scanner(System.in);
   private static Socket s = null;
 
-//asasas
-
 
   public static void main(String[] args) throws IOException, InterruptedException{
 
@@ -41,17 +39,18 @@ class Cliente {
 
 
       System.out.println("Autenticação efetuada com sucesso \n > A processar pedido..");
-      TimeUnit.SECONDS.sleep(2);
+      TimeUnit.SECONDS.sleep(1);
 
-      porta = Integer.parseInt(args[0]);
-      hostname = args[1];
-      fileName = args[2];
-      destFileName = args[3];
+      lossRate = Integer.parseInt(args[0]);
+      porta = Integer.parseInt(args[1]);
+      hostname = args[2];
+      fileName = args[3];
+      destFileName = args[4];
 
       DatagramSocket socket = new DatagramSocket();
       InetAddress address = InetAddress.getByName(hostname);
 
-      byte[] saveDataFile = fileName.getBytes();
+      byte[] saveDataFile = destFileName.getBytes();
       DatagramPacket filePacket = new DatagramPacket(saveDataFile, saveDataFile.length, address, porta);
       socket.send(filePacket);
 
@@ -62,9 +61,8 @@ class Cliente {
       //enviar ficheiro
       timer.start();
       beginTransfer(socket, ficheiroByteArray, address);
-      printCurrentStats(totalTransferred, previousSize, timer, previousTimeElapsed);
-
-      System.out.println("> Enviado ficheiro '" + fileName + "' com sucesso!");
+      String stats = getFinalStats(ficheiroByteArray, retransmitted);
+      sendServerFinalStats(socket, address, stats);
       socket.close();
   }
 
@@ -97,9 +95,12 @@ class Cliente {
 
             DatagramPacket sendPacket = new DatagramPacket(message, message.length, address, porta);
 
+            Random random = new Random();
+            int randomInt = random.nextInt(100);
 
-            socket.send(sendPacket);
-
+            if(randomInt <= lossRate){
+              socket.send(sendPacket);
+            }
 
             totalTransferred = sendPacket.getLength() + totalTransferred;
             totalTransferred = Math.round(totalTransferred);
@@ -152,23 +153,58 @@ class Cliente {
         }
     }
 
-    public static void printCurrentStats(int totalTransferred, int previousSize, Chronometer timer, double previousTimeElapsed) {
-        System.out.println();
-        System.out.println();
-        System.out.println("---------------------------------------------------------\n");
+/*    public static void printCurrentStats(int totalTransferred, int previousSize, Chronometer timer, double previousTimeElapsed) {
 
-        timer.stop();
         int sizeDifference = totalTransferred / 1000 - previousSize;
         double difference = timer.getTime() - previousTimeElapsed;
-        double throughput = totalTransferred / 1000 / timer.getTime();
-
-
-        System.out.println("novos bytes recebidos: " + sizeDifference + "Kb");
-        System.out.println("Recebidos: " + totalTransferred / 1000 + "Kb");
-        System.out.println("Timer: " + timer.getTime() / 1000 + " Seconds");
-        System.out.println("Descarga : " + throughput + "Mbps");
+        double velocidade = totalTransferred / 1000 / timer.getCurrentTime();
 
         System.out.println();
-        System.out.println("---------------------------------------------------------\n");
+        System.out.println();
+        System.out.println("---------------------------------------------------------");
+        System.out.println("novos bytes recebidos: " + sizeDifference + "Kb");
+        System.out.println("Recebidos: " + totalTransferred / 1000 + "Kb");
+        System.out.println("Timer: " + timer.getCurrentTime() / 1000 + " Seconds");
+        System.out.println("Descarga : " + velocidade + "Mbps");
+
+        System.out.println();
+        System.out.println("---------------------------------------------------------");
+    }
+*/
+    private static String getFinalStats(byte[] fileByteArray, int retransmitted) {
+        timer.stop();
+        double fileSizeKB = (fileByteArray.length) / 1024;
+        double transferTime = timer.getFinalTime() / 1000;
+        double fileSizeMB = fileSizeKB / 1000;
+        double velocidade = fileSizeMB / transferTime;
+
+        System.out.println("\n\n");
+        System.out.println("---------------------------------------------------------");
+        System.out.println("                    --Stats--");
+        System.out.println("---------------------------------------------------------");
+        System.out.println("O ficheiro '" + fileName + "' foi enviado com sucesso!");
+        System.out.println("Tamanho do ficheiro = " + totalTransferred / 1000 / 1000 + " MB");
+        System.out.println("Tempo de transferência: " + transferTime + " Seconds");
+        System.out.println("Velocidade de transferência:" + velocidade + " MB/s");
+        System.out.println("Número de retransmissões: " + retransmitted);
+        System.out.println("---------------------------------------------------------");
+        System.out.println("\n\n");
+
+
+        return "File Size: " + fileSizeMB + "mb\n"
+                + "Velocidade: " + velocidade + " Mbps"
+                + "\nTempo de transferência: " + transferTime + " Seconds";
+    }
+
+    private static void sendServerFinalStats(DatagramSocket socket, InetAddress address, String finalStatString) {
+        byte[] bytesData;
+        // convert string to bytes so we can send
+        bytesData = finalStatString.getBytes();
+        DatagramPacket statPacket = new DatagramPacket(bytesData, bytesData.length, address, porta);
+        try {
+            socket.send(statPacket);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -14,10 +14,11 @@ public class servidor {
 
   public static void main(String[] args) throws IOException, FileNotFoundException{
 
-    porta = Integer.parseInt(args[0]);
-    System.out.println("--SERVIDOR ATIVO--");
-    //instancia socket para atribuir conexão
-    DatagramSocket socketData = new DatagramSocket(porta);
+      porta = Integer.parseInt(args[0]);
+      System.out.println("--SERVIDOR ATIVO--");
+
+      //instancia socket para atribuir conexão
+      DatagramSocket socketData = new DatagramSocket(porta);
 
       //instancia do pacote a ser enviado
       byte[] fileNamePacket = new byte[1024];
@@ -38,11 +39,10 @@ public class servidor {
       System.out.println("> A processar " + fileName + "...");
       acceptTransfer(outToFile, socketData);
 
-      byte[] destFile = new byte[1024];
-      DatagramPacket destFilePacket = new DatagramPacket(destFile, destFile.length);
-      socketData.receive(destFilePacket);
-
-      System.out.println("-> Ficheiro '" + fileName + "' recebido com sucesso!");
+      byte[] finalStatData = new byte[1024];
+      DatagramPacket receiveStatPacket = new DatagramPacket(finalStatData, finalStatData.length);
+      socketData.receive(receiveStatPacket);
+      printStatPacket(finalStatData);
   }
 
   private static void acceptTransfer(FileOutputStream outToFile, DatagramSocket socket) throws IOException {
@@ -68,6 +68,7 @@ public class servidor {
             if(sequenceNumber == 0){
               timer.start();
             }
+
 
             // Get port and address for sending acknowledgment
             InetAddress address = receivedPacket.getAddress();
@@ -125,6 +126,22 @@ public class servidor {
                 ackPacket.length, address, port);
         socket.send(acknowledgement);
         System.out.println("Sent ack: Sequence Number = " + findLast);
+    }
+
+    private static void printStatPacket(byte[] finalStatData){
+      try {
+          String decode = new String(finalStatData, "UTF-8");
+          System.out.println("\n\n");
+          System.out.println("---------------------------------------------------------");
+          System.out.println("                    --Stats--");
+          System.out.println("---------------------------------------------------------");
+          System.out.println("Ficheiro guardado como: " + fileName);
+          System.out.println("" + decode.trim());
+          System.out.println("---------------------------------------------------------\n");
+
+      } catch (UnsupportedEncodingException e) {
+          e.printStackTrace();
+      }
     }
 
 }
