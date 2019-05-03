@@ -17,7 +17,7 @@ class Cliente {
   private static int totalTransferred = 0;
   private static final double previousTimeElapsed = 0;
   private static final int previousSize = 0;
-  private static Chronometer timer;
+  private static Chronometer timer = new Chronometer();
   private static Scanner input = new Scanner(System.in);
   private static Socket s = null;
 
@@ -51,18 +51,20 @@ class Cliente {
       DatagramSocket socket = new DatagramSocket();
       InetAddress address = InetAddress.getByName(hostname);
 
-      byte[] saveDataFile = destFileName.getBytes();
+      byte[] saveDataFile = fileName.getBytes();
       DatagramPacket filePacket = new DatagramPacket(saveDataFile, saveDataFile.length, address, porta);
       socket.send(filePacket);
 
       File ficheiro = new File(fileName);
-      int fileLenght = (int) ficheiro.length();
-      byte[] ficheiroByteArray = new byte[fileLenght];
+      int fileLength = (int) ficheiro.length();
+      byte[] ficheiroByteArray = new byte[fileLength];
 
       //enviar ficheiro
+      timer.start();
       beginTransfer(socket, ficheiroByteArray, address);
+      printCurrentStats(totalTransferred, previousSize, timer, previousTimeElapsed);
 
-      System.out.println("> ficheiro " + fileName + " com sucesso!");
+      System.out.println("> Enviado ficheiro '" + fileName + "' com sucesso!");
       socket.close();
   }
 
@@ -95,20 +97,12 @@ class Cliente {
 
             DatagramPacket sendPacket = new DatagramPacket(message, message.length, address, porta);
 
-            Random random = new Random();
-            int randomInt = random.nextInt(100);
-            lossRate = 100;
 
-            if (randomInt <= lossRate) {
-                  socket.send(sendPacket);
-            }
+            socket.send(sendPacket);
+
 
             totalTransferred = sendPacket.getLength() + totalTransferred;
             totalTransferred = Math.round(totalTransferred);
-
-            if (Math.round(totalTransferred / 1000) % 50 == 0) {
-                printCurrentStats(totalTransferred, previousSize, timer, previousTimeElapsed);
-            }
 
             System.out.println("Sent: Sequence number = " + sequenceNumber);
 
@@ -163,6 +157,7 @@ class Cliente {
         System.out.println();
         System.out.println("---------------------------------------------------------\n");
 
+        timer.stop();
         int sizeDifference = totalTransferred / 1000 - previousSize;
         double difference = timer.getTime() - previousTimeElapsed;
         double throughput = totalTransferred / 1000 / timer.getTime();
@@ -171,9 +166,8 @@ class Cliente {
         System.out.println("novos bytes recebidos: " + sizeDifference + "Kb");
         System.out.println("Recebidos: " + totalTransferred / 1000 + "Kb");
         System.out.println("Timer: " + timer.getTime() / 1000 + " Seconds");
-        System.out.println("Descarga :" + throughput + "Mbps");
+        System.out.println("Descarga : " + throughput + "Mbps");
 
-        System.out.println();
         System.out.println();
         System.out.println("---------------------------------------------------------\n");
     }

@@ -5,13 +5,16 @@ public class servidor {
 
   //usr = serverCCTP3 pass = grupo64
   private static int totalTransferred = 0;
+  private static Chronometer timer = new Chronometer();
   private static String fileName = "";
   private int id=0;
+  private static int porta = 0;
+  private static String decodeFile = null;
   //private HashMap<String, String> utilizadores; //<username, password>
 
   public static void main(String[] args) throws IOException, FileNotFoundException{
 
-    int porta = Integer.parseInt(args[0]);
+    porta = Integer.parseInt(args[0]);
     System.out.println("--SERVIDOR ATIVO--");
     //instancia socket para atribuir conexão
     DatagramSocket socketData = new DatagramSocket(porta);
@@ -19,25 +22,27 @@ public class servidor {
       //instancia do pacote a ser enviado
       byte[] fileNamePacket = new byte[1024];
       DatagramPacket filePacket = new DatagramPacket(fileNamePacket, fileNamePacket.length);
+      socketData.receive(filePacket);
 
       try{
-        File file = new File(fileName);
-        FileOutputStream outToFile = new FileOutputStream(file);
-        acceptTransfer(outToFile, socketData);
-        System.out.println("> A processar " + fileName + "...");
+        decodeFile = new String(fileNamePacket, "UTF-8");
       }
-      catch (FileNotFoundException f){
-        f.printStackTrace();
+      catch (UnsupportedEncodingException e){
+        e.printStackTrace();
       }
 
+      fileName = decodeFile.trim();
+      File file = new File(fileName);
+      FileOutputStream outToFile = new FileOutputStream(file);
+
+      System.out.println("> A processar " + fileName + "...");
+      acceptTransfer(outToFile, socketData);
 
       byte[] destFile = new byte[1024];
       DatagramPacket destFilePacket = new DatagramPacket(destFile, destFile.length);
-
       socketData.receive(destFilePacket);
 
-      System.out.println("Ficheiro " + fileName + " recebido com sucesso!");
-      socketData.close();
+      System.out.println("-> Ficheiro '" + fileName + "' recebido com sucesso!");
   }
 
   private static void acceptTransfer(FileOutputStream outToFile, DatagramSocket socket) throws IOException {
@@ -60,9 +65,16 @@ public class servidor {
             totalTransferred = receivedPacket.getLength() + totalTransferred;
             totalTransferred = Math.round(totalTransferred);
 
+            if(sequenceNumber == 0){
+              timer.start();
+            }
+
             // Get port and address for sending acknowledgment
             InetAddress address = receivedPacket.getAddress();
             int port = receivedPacket.getPort();
+
+            System.out.println("> ADDRESS: " + address.toString() + " PORTA: " + port);
+
 
             // Retrieve sequence number
             sequenceNumber = ((message[0] & 0xff) << 8) + (message[1] & 0xff);
@@ -115,23 +127,4 @@ public class servidor {
         System.out.println("Sent ack: Sequence Number = " + findLast);
     }
 
-    public static void printCurrentStats(int totalTransferred, int previousSize, Chronometer timer, double previousTimeElapsed) {
-        System.out.println();
-        System.out.println();
-        System.out.println("---------------------------------------------------------\n");
-
-        int sizeDifference = totalTransferred / 1000 - previousSize;
-        double difference = timer.getTime() - previousTimeElapsed;
-        double throughput = totalTransferred / 1000 / timer.getTime();
-
-
-        System.out.println("novos bytes recebidos: " + sizeDifference + "Kb");
-        System.out.println("Recebidos: " + totalTransferred / 1000 + "Kb");
-        System.out.println("Timer: " + timer.getTime() / 1000 + " Seconds");
-        System.out.println("Descarga :" + throughput + "Mbps");
-
-        System.out.println();
-        System.out.println();
-        System.out.println("---------------------------------------------------------\n");
-    }
 }
