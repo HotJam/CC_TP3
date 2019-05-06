@@ -20,7 +20,7 @@ public class servidor {
       //instancia socket para atribuir conexão
       DatagramSocket socketData = new DatagramSocket(porta);
 
-      //instancia do pacote a ser enviado
+      //instancia do pacote a ser recebido
       byte[] fileNamePacket = new byte[1024];
       DatagramPacket filePacket = new DatagramPacket(fileNamePacket, fileNamePacket.length);
       socketData.receive(filePacket);
@@ -43,11 +43,12 @@ public class servidor {
       DatagramPacket receiveStatPacket = new DatagramPacket(finalStatData, finalStatData.length);
       socketData.receive(receiveStatPacket);
       printStatPacket(finalStatData);
+      //socketData.close();
   }
 
   private static void acceptTransfer(FileOutputStream outToFile, DatagramSocket socket) throws IOException {
 
-        // last message flag
+        // flag para última mensagem
         boolean flag;
         int sequenceNumber = 0;
         int findLast = 0;
@@ -56,9 +57,9 @@ public class servidor {
             byte[] message = new byte[1024];
             byte[] fileByteArray = new byte[1021];
 
-            // Receive packet and retrieve message
+            // Buscar pacote e receber mensagem
             DatagramPacket receivedPacket = new DatagramPacket(message, message.length);
-            socket.setSoTimeout(0);
+            //socket.setSoTimeout(0);
             socket.receive(receivedPacket);
 
             message = receivedPacket.getData();
@@ -69,61 +70,65 @@ public class servidor {
               timer.start();
             }
 
-
-            // Get port and address for sending acknowledgment
+            // Get Port e ADDRESS para mandar acknowledgment
             InetAddress address = receivedPacket.getAddress();
             int port = receivedPacket.getPort();
 
             System.out.println("> ADDRESS: " + address.toString() + " PORTA: " + port);
 
 
-            // Retrieve sequence number
+            // calcular sequence number
             sequenceNumber = ((message[0] & 0xff) << 8) + (message[1] & 0xff);
-            // Retrieve the last message flag
-            // a returned value of true means we have a problem
+
+            // atribuir valor booleano à mensagem sequencia de bits a 1
+            // se flag = true ocorreu um problema !
             flag = (message[2] & 0xff) == 1;
-            // if sequence number is the last one +1, then it is correct
-            // we get the data from the message and write the message
-            // that it has been received correctly
+
+
+            // se o sequence number é igual ao útlimo recebido +1 está OK
+            // a seguir é preciso ir buscar os dados da útlima mensagem recebida com sucesso
             if (sequenceNumber == (findLast + 1)) {
 
-                // set the last sequence number to be the one we just received
+                // é preciso dizer que o sequence number atual será o útlimo recebido para a próxima itereção
                 findLast = sequenceNumber;
 
-                // Retrieve data from message
+                // Copiar os dados da mensagem recebida
                 System.arraycopy(message, 3, fileByteArray, 0, 1021);
 
-                // Write the message to the file and print received message
+                // Escrever os dados recebidos para o ficheiro output
                 outToFile.write(fileByteArray);
                 System.out.println("Received: Sequence number:"
                         + findLast);
 
-                // Send acknowledgement
+                // Enviar acknowledgement
                 sendAck(findLast, socket, address, port);
             } else {
+                // Se o sequence number não estiver correto é mandado um novo acknowledgment
                 System.out.println("Expected sequence number: "
                         + (findLast + 1) + " but received "
                         + sequenceNumber + ". DISCARDING");
-                // Re send the acknowledgement
+
                 sendAck(findLast, socket, address, port);
             }
 
-            // Check for last message
+            // Check flag message
             if (flag) {
-                outToFile.close();
                 break;
             }
+
         }
+        outToFile.close();
     }
 
     private static void sendAck(int findLast, DatagramSocket socket, InetAddress address, int port) throws IOException {
-        // send acknowledgement
+
         byte[] ackPacket = new byte[2];
         ackPacket[0] = (byte) (findLast >> 8);
         ackPacket[1] = (byte) (findLast);
-        // the datagram packet to be sent
-        DatagramPacket acknowledgement = new DatagramPacket(ackPacket,
-                ackPacket.length, address, port);
+
+        // Declarar o datagrama a ser enviado
+        DatagramPacket acknowledgement = new DatagramPacket(ackPacket, ackPacket.length, address, port);
+
         socket.send(acknowledgement);
         System.out.println("Sent ack: Sequence Number = " + findLast);
     }

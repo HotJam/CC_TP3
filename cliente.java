@@ -4,7 +4,7 @@ import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
-class Cliente {
+class cliente {
 
   private static String username = "";
   private static String password = "";
@@ -19,7 +19,6 @@ class Cliente {
   private static final int previousSize = 0;
   private static Chronometer timer = new Chronometer();
   private static Scanner input = new Scanner(System.in);
-  private static Socket s = null;
 
 
   public static void main(String[] args) throws IOException, InterruptedException{
@@ -30,7 +29,7 @@ class Cliente {
     password = input.nextLine();
 
     while(!(username.equals("servercctp3") && password.equals("grupo64"))){
-      System.out.println("Credencias incorretas! \n ->> tente: usr = servercctp3 passwd = grupo64");
+      System.out.println("Credencias incorretas! \n -> tente: usr = servercctp3 passwd = grupo64");
       System.out.println("username");
       username = input.nextLine();
       System.out.println("password");
@@ -38,25 +37,30 @@ class Cliente {
     }
 
 
-      System.out.println("Autenticação efetuada com sucesso \n > A processar pedido..");
+      System.out.println("Autenticação efetuada com sucesso \n > A processar pedido.. \n Aguarde..");
       TimeUnit.SECONDS.sleep(1);
 
       lossRate = Integer.parseInt(args[0]);
+      setLossRate(lossRate);
       porta = Integer.parseInt(args[1]);
+      setPort(porta);
       hostname = args[2];
+      setHostname(hostname);
       fileName = args[3];
+      setFileName(fileName);
       destFileName = args[4];
+      setDestFile(destFileName);
 
       DatagramSocket socket = new DatagramSocket();
-      InetAddress address = InetAddress.getByName(hostname);
+      InetAddress address = InetAddress.getByName(getHostname());
 
       byte[] saveDataFile = destFileName.getBytes();
-      DatagramPacket filePacket = new DatagramPacket(saveDataFile, saveDataFile.length, address, porta);
+      DatagramPacket filePacket = new DatagramPacket(saveDataFile, saveDataFile.length, address, getPort());
       socket.send(filePacket);
 
-      File ficheiro = new File(fileName);
-      int fileLength = (int) ficheiro.length();
-      byte[] ficheiroByteArray = new byte[fileLength];
+      File ficheiro = new File(getFileName());
+      //int fileLength = (int) ficheiro.length();
+      byte[] ficheiroByteArray = new byte[(int) ficheiro.length()];
 
       //enviar ficheiro
       timer.start();
@@ -87,13 +91,17 @@ class Cliente {
                 message[2] = (byte) (0);
             }
 
+            // verificar valor da mensagem
+            // se a flag contiver o valor false é pq chegou ao fim do ficheiro
             if (!flag) {
                 System.arraycopy(fileByteArray, i, message, 3, 1021);
-            } else { // If it is the last message
+                //System.out.println("DADOS: " + message.toString());
+            } else {
                 System.arraycopy(fileByteArray, i, message, 3, fileByteArray.length - i);
+                //System.out.println("DADOS Final : " + message.toString());
             }
 
-            DatagramPacket sendPacket = new DatagramPacket(message, message.length, address, porta);
+            DatagramPacket sendPacket = new DatagramPacket(message, message.length, address, getPort());
 
             Random random = new Random();
             int randomInt = random.nextInt(100);
@@ -121,8 +129,7 @@ class Cliente {
                     // set the socket timeout for the packet acknowledgment
                     socket.setSoTimeout(50);
                     socket.receive(ackpack);
-                    ackSequence = ((ack[0] & 0xff) << 8)
-                            + (ack[1] & 0xff);
+                    ackSequence = ((ack[0] & 0xff) << 8) + (ack[1] & 0xff);
                     ackRec = true;
 
                 }
@@ -134,18 +141,15 @@ class Cliente {
 
                 // everything is ok so we can move on to next packet
                 // Break if there is an acknowledgment next packet can be sent
-                if ((ackSequence == sequenceNumber)
-                        && (ackRec)) {
-                    System.out.println("Ack received: Sequence Number = "
-                            + ackSequence);
+                if ((ackSequence == sequenceNumber) && (ackRec)) {
+                    System.out.println("Ack received: Sequence Number = " + ackSequence);
                     break;
                 }
 
                 // Re send the packet
                 else {
                     socket.send(sendPacket);
-                    System.out.println("Resending: Sequence Number = "
-                            + sequenceNumber);
+                    System.out.println("Resending: Sequence Number = " + sequenceNumber);
                     // Increment retransmission counter
                     retransmitted += 1;
                 }
@@ -174,7 +178,7 @@ class Cliente {
     private static String getFinalStats(byte[] fileByteArray, int retransmitted) {
         timer.stop();
         double fileSizeKB = (fileByteArray.length) / 1024;
-        double transferTime = timer.getFinalTime() / 1000;
+        double transferTime = timer.getSeconds();
         double fileSizeMB = fileSizeKB / 1000;
         double velocidade = fileSizeMB / transferTime;
 
@@ -183,22 +187,22 @@ class Cliente {
         System.out.println("                    --Stats--");
         System.out.println("---------------------------------------------------------");
         System.out.println("O ficheiro '" + fileName + "' foi enviado com sucesso!");
-        System.out.println("Tamanho do ficheiro = " + totalTransferred / 1000 / 1000 + " MB");
+        System.out.println("Tamanho do ficheiro = " + fileSizeMB + " mb");
         System.out.println("Tempo de transferência: " + transferTime + " Seconds");
-        System.out.println("Velocidade de transferência:" + velocidade + " MB/s");
+        System.out.println("Velocidade de transferência: " + velocidade + " Mbps");
         System.out.println("Número de retransmissões: " + retransmitted);
         System.out.println("---------------------------------------------------------");
         System.out.println("\n\n");
 
 
-        return "File Size: " + fileSizeMB + "mb\n"
+        return "File Size: " + fileSizeMB + " mb\n"
                 + "Velocidade: " + velocidade + " Mbps"
                 + "\nTempo de transferência: " + transferTime + " Seconds";
     }
 
     private static void sendServerFinalStats(DatagramSocket socket, InetAddress address, String finalStatString) {
         byte[] bytesData;
-        // convert string to bytes so we can send
+        // convert string to bytes para ser recebido como datagrama no servidor
         bytesData = finalStatString.getBytes();
         DatagramPacket statPacket = new DatagramPacket(bytesData, bytesData.length, address, porta);
         try {
@@ -207,4 +211,45 @@ class Cliente {
             e.printStackTrace();
         }
     }
+
+    private static int getLossRate() {
+        return lossRate;
+    }
+
+    private static void setLossRate(int loss_rate) {
+        lossRate = loss_rate;
+    }
+
+    private static int getPort() {
+        return porta;
+    }
+
+    private static void setPort(int port) {
+        porta = port;
+    }
+
+    private static String getFileName() {
+        return fileName;
+    }
+
+    private static void setFileName(String file_name) {
+        fileName = file_name;
+    }
+
+    private static void setDestFile(String dest_file) {
+        destFileName = dest_file;
+    }
+
+    private static String getDestFileName() {
+        return destFileName;
+    }
+
+    private static String getHostname() {
+        return hostname;
+    }
+
+    private static void setHostname(String host) {
+        hostname = host;
+    }
+
 }
