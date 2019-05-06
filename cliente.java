@@ -115,42 +115,40 @@ class cliente {
 
             System.out.println("Sent: Sequence number = " + sequenceNumber);
 
-            // For verifying the the packet
+            // flag para verificação de pacote ackRec = true -> ok!
             boolean ackRec;
 
-            // The acknowledgment is not correct
             while (true) {
-                // Create another packet by setting a byte array and creating
-                // data gram packet
+
+                // Criar Novo DatagramPacket para enviar Acks
                 byte[] ack = new byte[2];
                 DatagramPacket ackpack = new DatagramPacket(ack, ack.length);
 
                 try {
-                    // set the socket timeout for the packet acknowledgment
+
+                    // set timeout para os Acks
                     socket.setSoTimeout(50);
                     socket.receive(ackpack);
                     ackSequence = ((ack[0] & 0xff) << 8) + (ack[1] & 0xff);
                     ackRec = true;
 
                 }
-                // we did not receive an ack
                 catch (SocketTimeoutException e) {
+                    // se não receber Acks
                     System.out.println("Socket timed out waiting for the ");
                     ackRec = false;
                 }
 
-                // everything is ok so we can move on to next packet
-                // Break if there is an acknowledgment next packet can be sent
+
+                // Se ackSequence e o sequence Number são iguais e recebeu um Ack (ackRec=true)
                 if ((ackSequence == sequenceNumber) && (ackRec)) {
                     System.out.println("Ack received: Sequence Number = " + ackSequence);
                     break;
                 }
-
-                // Re send the packet
                 else {
+                    // Renviar pacote e incrementar o contador de retransmissões
                     socket.send(sendPacket);
                     System.out.println("Resending: Sequence Number = " + sequenceNumber);
-                    // Increment retransmission counter
                     retransmitted += 1;
                 }
             }
