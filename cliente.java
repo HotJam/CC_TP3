@@ -18,10 +18,9 @@ class cliente {
   private static int totalTransferred = 0;
   private static final double previousTimeElapsed = 0;
   private static final int previousSize = 0;
-
-  private static DatagramSocket socket;
   private static Chronometer timer = new Chronometer();
   private static Scanner input = new Scanner(System.in);
+  private static DatagramSocket socket;
 
 
   public static void main(String[] args) throws IOException, InterruptedException{
@@ -47,7 +46,7 @@ class cliente {
       String[] comando;
       boolean exit_flag = false;
 
-      while(!exit_flag){
+      //while(!exit_flag){
         System.out.println("Insira comandos no formato:    [get <file> <dest> <lossrate>]  [put <file> <dest> <lossrate>]\n");
         System.out.print(">");
         linha = input.nextLine();
@@ -72,13 +71,17 @@ class cliente {
             socket = new DatagramSocket();
             InetAddress address = InetAddress.getByName(getHostname());
 
-            byte[] saveDataFile = destFileName.getBytes();
+            String aux = getDestFileName();
+            byte[] saveDataFile = new byte[1024];
+            saveDataFile = aux.getBytes();
+
             DatagramPacket filePacket = new DatagramPacket(saveDataFile, saveDataFile.length, address, getPort());
             socket.send(filePacket);
 
             File ficheiro = new File(getFileName());
-            //int fileLength = (int) ficheiro.length();
-            byte[] ficheiroByteArray = new byte[(int) ficheiro.length()];
+            FileInputStream fileInputStream = new FileInputStream(ficheiro);
+            byte[] ficheiroByteArray = new byte[(int)ficheiro.length()];
+            fileInputStream.read(ficheiroByteArray);
 
             //enviar ficheiro
             timer.start();
@@ -86,16 +89,21 @@ class cliente {
             String stats = getFinalStats(ficheiroByteArray, retransmitted);
             sendServerFinalStats(socket, address, stats);
             break;
-          case "sair":
+        /*  case "sair":
             exit_flag = true;
+            String exit = "sair";
+            byte[] exitConnection = new byte[1024];
+            exitConnection = exit.getBytes();
+
+            InetAddress add = InetAddress.getByName(getHostname());
+            DatagramPacket exitPacket = new DatagramPacket(exitConnection, exitConnection.length, add, getPort());
+            socket.send(exitPacket);
             socket.close();
-            break;
+            break;*/
           default:
             System.out.println(">Comando não suportado!\n>Tente novamente ou escreva 'sair' para cancelar!");
         }
-      }
-
-
+      //}
   }
 
     private static void beginTransfer(DatagramSocket socket, byte[] fileByteArray, InetAddress address) throws IOException {
@@ -123,10 +131,10 @@ class cliente {
             // se a flag contiver o valor false é pq chegou ao fim do ficheiro
             if (!flag) {
                 System.arraycopy(fileByteArray, i, message, 3, 1021);
-                //System.out.println("DADOS: " + message.toString());
+                //System.out.println("DADOS: " + fileByteArray.length);
             } else {
                 System.arraycopy(fileByteArray, i, message, 3, fileByteArray.length - i);
-                //System.out.println("DADOS Final : " + message.toString());
+                //System.out.println("DADOS Final : " + fileByteArray.length);
             }
 
             DatagramPacket sendPacket = new DatagramPacket(message, message.length, address, getPort());

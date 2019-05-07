@@ -10,40 +10,52 @@ public class servidor {
   private int id=0;
   private static int porta = 0;
   private static String decodeFile = null;
-  //private HashMap<String, String> utilizadores; //<username, password>
+  private static ServerSocket server;
+  private static Socket ss;
+
 
   public static void main(String[] args) throws IOException, FileNotFoundException{
 
       porta = Integer.parseInt(args[0]);
       System.out.println("--SERVIDOR ATIVO--");
 
-      //instancia socket para atribuir conexão
+      //instancia datagram socket para atribuir conexão server socket para comunicação
       DatagramSocket socketData = new DatagramSocket(porta);
 
-      //instancia do pacote a ser recebido
-      byte[] fileNamePacket = new byte[1024];
-      DatagramPacket filePacket = new DatagramPacket(fileNamePacket, fileNamePacket.length);
-      socketData.receive(filePacket);
+      boolean exit_flag = false;
 
-      try{
-        decodeFile = new String(fileNamePacket, "UTF-8");
-      }
-      catch (UnsupportedEncodingException e){
-        e.printStackTrace();
-      }
 
-      fileName = decodeFile.trim();
-      File file = new File(fileName);
-      FileOutputStream outToFile = new FileOutputStream(file);
+          //instancia do pacote a ser recebido
+          byte[] fileNamePacket = new byte[1024];
+          DatagramPacket filePacket = new DatagramPacket(fileNamePacket, fileNamePacket.length);
+          socketData.receive(filePacket);
 
-      System.out.println("> A processar " + fileName + "...");
-      acceptTransfer(outToFile, socketData);
 
-      byte[] finalStatData = new byte[1024];
-      DatagramPacket receiveStatPacket = new DatagramPacket(finalStatData, finalStatData.length);
-      socketData.receive(receiveStatPacket);
-      printStatPacket(finalStatData);
-      
+          try{
+            decodeFile = new String(fileNamePacket, "UTF-8");
+          }
+          catch (UnsupportedEncodingException e){
+            e.printStackTrace();
+          }
+
+          fileName = decodeFile.trim();
+          File file = new File(fileName);
+          //file.canRead();
+          file.canWrite();
+          file.canExecute();
+          FileOutputStream outToFile = new FileOutputStream(file);
+
+          //BufferedWriter bw = new BufferedWriter(new FileWriter(file));
+
+          System.out.println("> A processar " + fileName + "...");
+          acceptTransfer(outToFile, socketData);
+
+          byte[] finalStatData = new byte[1024];
+          DatagramPacket receiveStatPacket = new DatagramPacket(finalStatData, finalStatData.length);
+          socketData.receive(receiveStatPacket);
+          printStatPacket(finalStatData);
+
+          socketData.close();
   }
 
   private static void acceptTransfer(FileOutputStream outToFile, DatagramSocket socket) throws IOException {
@@ -59,7 +71,7 @@ public class servidor {
 
             // Buscar pacote e receber mensagem
             DatagramPacket receivedPacket = new DatagramPacket(message, message.length);
-            //socket.setSoTimeout(0);
+            socket.setSoTimeout(0);
             socket.receive(receivedPacket);
 
             message = receivedPacket.getData();
@@ -96,9 +108,12 @@ public class servidor {
                 System.arraycopy(message, 3, fileByteArray, 0, 1021);
 
                 // Escrever os dados recebidos para o ficheiro output
+                //outToFile.writeInt(fileByteArray.length);
                 outToFile.write(fileByteArray);
-                System.out.println("Received: Sequence number:"
-                        + findLast);
+                outToFile.flush();
+                //IOUtils.write(fileByteArray, outToFile);
+
+                System.out.println("Received: Sequence number: " + findLast);
 
                 // Enviar acknowledgement
                 sendAck(findLast, socket, address, port);
@@ -113,11 +128,12 @@ public class servidor {
 
             // Check flag message
             if (flag) {
+                outToFile.flush();
+                outToFile.close();
                 break;
             }
-
         }
-        outToFile.close();
+
     }
 
     private static void sendAck(int findLast, DatagramSocket socket, InetAddress address, int port) throws IOException {
