@@ -43,7 +43,7 @@ public class servidor {
       DatagramPacket receiveStatPacket = new DatagramPacket(finalStatData, finalStatData.length);
       socketData.receive(receiveStatPacket);
       printStatPacket(finalStatData);
-      //socketData.close();
+      
   }
 
   private static void acceptTransfer(FileOutputStream outToFile, DatagramSocket socket) throws IOException {

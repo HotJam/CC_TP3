@@ -3,6 +3,7 @@ import java.net.*;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
+import java.util.StringTokenizer;
 
 class cliente {
 
@@ -17,57 +18,84 @@ class cliente {
   private static int totalTransferred = 0;
   private static final double previousTimeElapsed = 0;
   private static final int previousSize = 0;
+
+  private static DatagramSocket socket;
   private static Chronometer timer = new Chronometer();
   private static Scanner input = new Scanner(System.in);
 
 
   public static void main(String[] args) throws IOException, InterruptedException{
 
-    System.out.print("username ");
-    username = input.nextLine();
-    System.out.print("password ");
-    password = input.nextLine();
-
-    while(!(username.equals("servercctp2") && password.equals("grupo64"))){
-      System.out.println("Credenciais incorretas! \n -> tente: usr = servercctp2 passwd = grupo64");
       System.out.print("username ");
       username = input.nextLine();
       System.out.print("password ");
       password = input.nextLine();
-    }
 
+      while(!(username.equals("servercctp2") && password.equals("grupo64"))){
+        System.out.println("Credenciais incorretas! \n -> tente: usr = servercctp2 passwd = grupo64");
+        System.out.print("username ");
+        username = input.nextLine();
+        System.out.print("password ");
+        password = input.nextLine();
+      }
 
-      System.out.println("Autenticação efetuada com sucesso \n > A processar pedido.. \n Aguarde..");
+      System.out.println(" Aguarde..\n\n");
       TimeUnit.SECONDS.sleep(1);
+      System.out.println(">Autenticação efetuada com sucesso!");
 
-      lossRate = Integer.parseInt(args[0]);
-      setLossRate(lossRate);
-      porta = Integer.parseInt(args[1]);
-      setPort(porta);
-      hostname = args[2];
-      setHostname(hostname);
-      fileName = args[3];
-      setFileName(fileName);
-      destFileName = args[4];
-      setDestFile(destFileName);
+      String linha = "";
+      String[] comando;
+      boolean exit_flag = false;
 
-      DatagramSocket socket = new DatagramSocket();
-      InetAddress address = InetAddress.getByName(getHostname());
+      while(!exit_flag){
+        System.out.println("Insira comandos no formato:    [get <file> <dest> <lossrate>]  [put <file> <dest> <lossrate>]\n");
+        System.out.print(">");
+        linha = input.nextLine();
+        comando = linha.split(" ");
+        switch (comando[0]){
+          case "get":
+            System.out.println(">Funcionalidade não suportada!");
+            break;
+          case "put":
+            fileName = comando[1];
+            setFileName(fileName);
+            destFileName = comando[2];
+            setDestFile(destFileName);
+            lossRate = Integer.parseInt(comando[3]);
+            setLossRate(lossRate);
 
-      byte[] saveDataFile = destFileName.getBytes();
-      DatagramPacket filePacket = new DatagramPacket(saveDataFile, saveDataFile.length, address, getPort());
-      socket.send(filePacket);
+            porta = Integer.parseInt(args[0]);
+            setPort(porta);
+            hostname = args[1];
+            setHostname(hostname);
 
-      File ficheiro = new File(getFileName());
-      //int fileLength = (int) ficheiro.length();
-      byte[] ficheiroByteArray = new byte[(int) ficheiro.length()];
+            socket = new DatagramSocket();
+            InetAddress address = InetAddress.getByName(getHostname());
 
-      //enviar ficheiro
-      timer.start();
-      beginTransfer(socket, ficheiroByteArray, address);
-      String stats = getFinalStats(ficheiroByteArray, retransmitted);
-      sendServerFinalStats(socket, address, stats);
-      socket.close();
+            byte[] saveDataFile = destFileName.getBytes();
+            DatagramPacket filePacket = new DatagramPacket(saveDataFile, saveDataFile.length, address, getPort());
+            socket.send(filePacket);
+
+            File ficheiro = new File(getFileName());
+            //int fileLength = (int) ficheiro.length();
+            byte[] ficheiroByteArray = new byte[(int) ficheiro.length()];
+
+            //enviar ficheiro
+            timer.start();
+            beginTransfer(socket, ficheiroByteArray, address);
+            String stats = getFinalStats(ficheiroByteArray, retransmitted);
+            sendServerFinalStats(socket, address, stats);
+            break;
+          case "sair":
+            exit_flag = true;
+            socket.close();
+            break;
+          default:
+            System.out.println(">Comando não suportado!\n>Tente novamente ou escreva 'sair' para cancelar!");
+        }
+      }
+
+
   }
 
     private static void beginTransfer(DatagramSocket socket, byte[] fileByteArray, InetAddress address) throws IOException {
