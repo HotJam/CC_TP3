@@ -23,16 +23,16 @@ class cliente {
 
   public static void main(String[] args) throws IOException, InterruptedException{
 
-    System.out.println("username");
+    System.out.print("username ");
     username = input.nextLine();
-    System.out.println("password");
+    System.out.print("password ");
     password = input.nextLine();
 
-    while(!(username.equals("servercctp3") && password.equals("grupo64"))){
-      System.out.println("Credencias incorretas! \n -> tente: usr = servercctp3 passwd = grupo64");
-      System.out.println("username");
+    while(!(username.equals("servercctp2") && password.equals("grupo64"))){
+      System.out.println("Credenciais incorretas! \n -> tente: usr = servercctp2 passwd = grupo64");
+      System.out.print("username ");
       username = input.nextLine();
-      System.out.println("password");
+      System.out.print("password ");
       password = input.nextLine();
     }
 
