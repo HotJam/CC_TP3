@@ -13,7 +13,6 @@ class cliente {
   private static String hostname = "";
   private static String fileName = "";
   private static String destFileName = "";
-  private static int lossRate = 0;
   private static int retransmitted = 0;
   private static int totalTransferred = 0;
   private static final double previousTimeElapsed = 0;
@@ -60,8 +59,6 @@ class cliente {
             setFileName(fileName);
             destFileName = comando[2];
             setDestFile(destFileName);
-            lossRate = Integer.parseInt(comando[3]);
-            setLossRate(lossRate);
 
             porta = Integer.parseInt(args[0]);
             setPort(porta);
@@ -138,13 +135,8 @@ class cliente {
             }
 
             DatagramPacket sendPacket = new DatagramPacket(message, message.length, address, getPort());
+            socket.send(sendPacket);
 
-            Random random = new Random();
-            int randomInt = random.nextInt(100);
-
-            if(randomInt <= lossRate){
-              socket.send(sendPacket);
-            }
 
             totalTransferred = sendPacket.getLength() + totalTransferred;
             totalTransferred = Math.round(totalTransferred);
@@ -246,13 +238,7 @@ class cliente {
         }
     }
 
-    private static int getLossRate() {
-        return lossRate;
-    }
 
-    private static void setLossRate(int loss_rate) {
-        lossRate = loss_rate;
-    }
 
     private static int getPort() {
         return porta;
